@@ -77,7 +77,7 @@ class ResourceautoModel extends Resourceauto
         $args->document_srl = $document_srl;
         $args->version = substr($repo_data->sha, 0, 6);
         $args->file_srl = $file_srl;
-        $args->screenshot_url = '';
+        $args->screenshot_url = $repo_data->profile;
         $args->voter = 0;
         $args->voted = 0;
         $args->regdate = date('YmdHis');
@@ -108,11 +108,13 @@ class githubRepo
         $commit_sha = $recent_commit->sha;
         $commit_message = $recent_commit->commit->message;
         $date = new DateTime($recent_commit->commit->committer->date);
+        $profile = $recent_commit->author->avatar_url;
 
         $result = new stdClass();
         $result->sha = $commit_sha;
         $result->date = $date->format('Y-m-d');
         $result->message = $commit_message;
+        $result->profile = $profile;
         return $result;
     }
 
