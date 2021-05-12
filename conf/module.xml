@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<module>
+	<grants>
+	</grants>
+	<actions>
+		<!-- 관리자 액션 -->
+		<action name="dispResourceautoAdminConfig" type="view" menu_name="resourceauto" admin_index="true" />
+		<action name="procResourceautoAdminInsertConfig" type="controller" />
+		<!-- 일반 액션 -->
+		<action name="dispResourceautoIndex" type="view" index="true" />
+	</actions>
+	<menus>
+		<menu name="resourceauto" type="all">
+			<title xml:lang="ko">Resource 자동 갱신</title>
+		</menu>
+	</menus>
+</module>

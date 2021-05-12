@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module version="0.2">
+	<title xml:lang="ko">Resource 자동 갱신</title>
+	<description xml:lang="ko">리소스 자동 갱신 모듈입니다</description>
+	<version>1.0.0</version>
+	<date>2021-05-12</date>
+	<category>service</category>
+	<author email_address="matthew218@naver.com" link="https://shop.hoto.dev">
+		<name xml:lang="ko">Waterticket</name>
+	</author>
+</module>
