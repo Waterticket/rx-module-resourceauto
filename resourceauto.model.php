@@ -9,10 +9,84 @@
  */
 class ResourceautoModel extends Resourceauto
 {
-    public function downloadRepoAndInsertFile($owner, $repo, $folder_name, $module_srl, $item_srl)
+    //return item_srl
+    public function insertResourceItem($package_srl)
     {
-        $gitClass = new githubRepo();
-        $zip_file = $gitClass->downloadRepo($owner, $repo, $folder_name);
+        $module_srl = 135;
+
+        $package_data = $this->getPackageFromAutoDB($package_srl);
+        $module_name = $package_data->program_name;
+        $url = $package_data->repo_url;
+
+        $gitClass = new githubRepo($url);
+        $repo_data = $gitClass->getGithubCommits();
+
+        $document_srl = $this->insertInfoDocument($package_srl, $repo_data); // 글 등록
+
+        $item_srl = getNextSequence(); // 아이템 srl
+        $file_srl = $this->downloadRepoAndInsertFile($gitClass, $module_name, $module_srl, $item_srl); // 파일 등록
+
+        $this->insertItem($item_srl, $package_srl, $document_srl, $file_srl, $repo_data);
+        $this->updateAutoDBVersion($package_srl, substr($repo_data->sha, 0, 6));
+
+        return $item_srl;
+    }
+
+    // return package_srl
+    public function insertPackage($category_srl, $repo_data, $title, $module_name, $install_path, $member_srl = 203)
+    {
+        $args = new stdClass();
+        $args->package_srl = getNextSequence();
+        $args->module_srl = 135;
+        $args->member_srl = $member_srl ?: 203;
+        $args->list_order = -1*$args->package_srl;
+        $args->status = 'accepted';
+        $args->comment_count = 0;
+        $args->voter = 0;
+        $args->voted = 0;
+        $args->downloaded = 0;
+        $args->regdate = date('YmdHis');
+        $args->last_update = date('YmdHis');
+
+        $args->category_srl = $category_srl;
+        $args->title = $title;
+        $args->license = ($repo_data->license->spdx_id) ?: 'github 참조';
+        $args->homepage = $repo_data->html_url;
+        $args->description = $repo_data->description;
+        $args->path = $install_path;
+
+        $args->latest_item_srl = 0;
+        $args->update_order = 0;
+
+        executeQuery('resource.insertPackage', $args);
+
+        return $args->package_srl;
+    }
+
+    public function insertAutoUpdateTable($package_srl, $repo_url, $program_name, $version, $type = 'module')
+    {
+        $args = new stdClass();
+        $args->package_srl = $package_srl;
+        $args->repo_url = $repo_url;
+        $args->program_name = $program_name;
+        $args->type = $type;
+        $args->version = $version;
+        $args->regdate = date('YmdHis');
+        executeQuery('resourceauto.insertPackage', $args);
+    }
+
+    public function updateAutoDBVersion($package_srl, $version)
+    {
+        $args = new stdClass();
+        $args->package_srl = $package_srl;
+        $args->version = $version;
+        $args->regdate = date('YmdHis');
+        executeQuery('resourceauto.updatePackageVersion', $args);
+    }
+
+    public function downloadRepoAndInsertFile($gitClass, $folder_name, $module_srl, $item_srl)
+    {
+        $zip_file = $gitClass->downloadRepo($folder_name);
 
         $file_structure = array();
         $file_structure["name"] = $zip_file->file_name;
@@ -24,27 +98,18 @@ class ResourceautoModel extends Resourceauto
         $oFileController = getController('file');
         $output = $oFileController->insertFile($file_structure, $module_srl, $item_srl, 0, true);
 
+        $this->removeFile($zip_file->path);
+
         $file_srl = $output->variables['file_srl'];
         return $file_srl;
     }
 
-    public function insertResourceItem($package_srl, $owner, $repo, $module_name)
+    public function removeFile($path)
     {
-        $module_srl = 135;
-        // $package_srl = 140;
-        // $owner = "Waterticket";
-        // $repo = "rx-module-hotopay";
-        // $module_name = "hotopay";
-
-        $gitClass = new githubRepo();
-        $repo_data = $gitClass->getGithubCommits($owner, $repo);
-
-        $document_srl = $this->insertInfoDocument($package_srl, $repo_data); // 글 등록
-
-        $item_srl = getNextSequence(); // 아이템 srl
-        $file_srl = $this->downloadRepoAndInsertFile($owner, $repo, $module_name, $module_srl, $item_srl); // 파일 등록
-
-        $this->insertItem($item_srl, $package_srl, $document_srl, $file_srl, $repo_data);
+        if(!empty($path))
+        {
+            shell_exec('rm -rf '.$path);
+        }
     }
 
     public function insertInfoDocument($package_srl, $repo_data)
@@ -57,7 +122,7 @@ class ResourceautoModel extends Resourceauto
         $doc_args->document_srl = getNextSequence();
         $doc_args->category_srl = $selected_package->category_srl;
         $doc_args->module_srl = 135;
-        $doc_args->content = "<p>".$repo_data->message."</p>";
+        $doc_args->content = "<p>업데이트 사항:</p><p>&nbsp;</p><p>".htmlspecialchars($repo_data->message)."</p>";
         $doc_args->title = sprintf('%s ver. %s', $selected_package->title, substr($repo_data->sha, 0, 6));
         $doc_args->list_order = $doc_args->document_srl*-1;
         $doc_args->tags = Context::get('tag');
@@ -90,6 +155,25 @@ class ResourceautoModel extends Resourceauto
         $args->update_order = $args->item_srl*-1;
         executeQuery('resource.updatePackage', $args);
     }
+
+    public function getPackageFromAutoDB($package_srl)
+    {
+        $args = new stdClass();
+        $args->package_srl = $package_srl;
+        $output = executeQuery('resourceauto.getPackage', $args);
+        return $output->data;
+    }
+
+    public function updateCheck($package_srl)
+    {
+        $package_data = $this->getPackageFromAutoDB($package_srl);
+        $gitClass = new githubRepo($package_data->repo_url);
+        $repo_data = $gitClass->getGithubCommits();
+
+        $version = substr($repo_data->sha, 0, 6);
+
+        return (strcmp($version, $package_data->version) !== 0);
+    }
 }
 
 class githubRepo
@@ -97,32 +181,78 @@ class githubRepo
     public static $github_api_url = "https://api.github.com";
     private static $temp_dir = RX_BASEDIR."files/cache/resourceauto/";
 
-	function getGithubCommits($owner, $repo)
+    public $recent_commit = null;
+    public $repository_data = null;
+
+    public $url;
+    public $owner;
+    public $repo;
+
+    function __construct($url)
     {
-        $sub_url = sprintf("/repos/%s/%s/commits", $owner, $repo);
-        $output = FileHandler::getRemoteResource(self::$github_api_url.$sub_url);
+        $this->githubUrlParser($url);
+    }
 
-        $commits = json_decode($output);
-        $recent_commit = $commits[0];
+    function githubUrlParser($url)
+    {
+        $this->url = $url;
+        preg_match('/https\:\/\/github.com\/(.*?)\/(.*)/', $url, $output_arr);
+        
+        $this->owner = $output_arr[1];
+        $this->repo = basename($output_arr[2], '.git');
+    }
 
-        $commit_sha = $recent_commit->sha;
-        $commit_message = $recent_commit->commit->message;
-        $date = new DateTime($recent_commit->commit->committer->date);
-        $profile = $recent_commit->author->avatar_url;
+    function getGithubRepository()
+    {
+        $owner = $this->owner;
+        $repo = $this->repo;
+
+        if($this->repository_data == null)
+        {
+            $sub_url = sprintf("/repos/%s/%s", $owner, $repo);
+            $output = FileHandler::getRemoteResource(self::$github_api_url.$sub_url);
+
+            $this->repository_data = json_decode($output);
+        }
+        return $this->repository_data;
+    }
+
+	function getGithubCommits()
+    {
+        $owner = $this->owner;
+        $repo = $this->repo;
+
+        if($recent_commit == null)
+        {
+            $sub_url = sprintf("/repos/%s/%s/commits", $owner, $repo);
+            $output = FileHandler::getRemoteResource(self::$github_api_url.$sub_url);
+
+            $commits = json_decode($output);
+            $this->recent_commit = $commits[0];
+        }
+
+        $commit_sha = $this->recent_commit->sha;
+        $commit_message = $this->recent_commit->commit->message;
+        $date = new DateTime($this->recent_commit->commit->committer->date);
+        $profile = $this->recent_commit->author->avatar_url;
 
         $result = new stdClass();
         $result->sha = $commit_sha;
         $result->date = $date->format('Y-m-d');
         $result->message = $commit_message;
         $result->profile = $profile;
+        $result->url = $this->url;
         return $result;
     }
 
     /*
     * @return downloaded file path
     */
-    function getGithubRepoFile($owner, $repo, $commit = 'master', $ext = 'tar')
+    function getGithubRepoFile($commit = 'master', $ext = 'tar')
     {
+        $owner = $this->owner;
+        $repo = $this->repo;
+
         if(!in_array($ext, array('tar','zip'))) return false;
 
         @set_time_limit(0);
@@ -168,7 +298,11 @@ class githubRepo
         $filename = basename($filedir, '.tar.gz');
         shell_exec(sprintf("cd '%s' && tar -zxvf '%s.tar.gz' && rm -rf '%s.tar.gz'", self::$temp_dir, $filename, $filename));
 
-        return self::$temp_dir.$filename;
+        $commit_data = $this->getGithubCommits();
+        $version = substr($commit_data->sha, 0, 7);
+        $dir_name = $this->owner.'-'.$this->repo.'-'.$version;
+
+        return self::$temp_dir.$dir_name;
     }
 
     function renamedir($filedir, $newname)
@@ -177,10 +311,12 @@ class githubRepo
         return self::$temp_dir.$newname;
     }
 
-    public function downloadRepo($owner, $repo, $folder_name)
+    public function downloadRepo($folder_name)
     {
-        $repo_data = $this->getGithubCommits($owner, $repo);
-        $file_name = $this->getGithubRepoFile($owner, $repo, $repo_data->sha);
+        if(empty($this->owner) || empty($this->repo)) return false;
+
+        $repo_data = $this->getGithubCommits();
+        $file_name = $this->getGithubRepoFile($repo_data->sha);
         $dir = $this->depackTargz($file_name);
         $dir = $this->renamedir($dir, $folder_name);
 

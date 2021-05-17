@@ -1,0 +1,13 @@
+<query id="insertPackage" action="insert">
+    <tables>
+        <table name="resourceauto_update" />
+    </tables>
+    <columns>
+        <column name="package_srl" var="package_srl" filter="number" notnull="notnull" />
+        <column name="repo_url" var="repo_url" notnull="notnull" />
+        <column name="program_name" var="program_name" notnull="notnull" />
+        <column name="type" var="type" notnull="notnull" />
+        <column name="version" var="version" notnull="notnull" />
+        <column name="regdate" default="curdate()" notnull="notnull" />
+    </columns>
+</query>

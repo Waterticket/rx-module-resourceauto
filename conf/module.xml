@@ -7,7 +7,8 @@
 		<action name="dispResourceautoAdminConfig" type="view" menu_name="resourceauto" admin_index="true" />
 		<action name="procResourceautoAdminInsertConfig" type="controller" />
 		<!-- 일반 액션 -->
-		<action name="dispResourceautoIndex" type="view" index="true" />
+		<action name="dispResourceautoRegisterPackage" type="view" />
+		<action name="procResourceautoRegisterPackage" type="controller" />
 	</actions>
 	<menus>
 		<menu name="resourceauto" type="all">

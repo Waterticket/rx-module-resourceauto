@@ -1,0 +1,8 @@
+<table name="resourceauto_update">
+    <column name="package_srl" type="number" size="11" notnull="notnull" primary_key="primary_key" />
+    <column name="repo_url" type="varchar" size="1000" />
+    <column name="program_name" type="varchar" size="255" />
+    <column name="type" type="varchar" size="255" />
+    <column name="version" type="varchar" size="255" />
+    <column name="regdate" type="date" />
+</table>

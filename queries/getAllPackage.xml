@@ -1,0 +1,10 @@
+<query id="getAllPackage" action="select">
+    <tables>
+        <table name="resourceauto_update" />
+    </tables>
+    <columns>
+        <column name="*" />
+    </columns>
+    <conditions>
+    </conditions>
+</query>

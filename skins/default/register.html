@@ -1,0 +1,79 @@
+<load target="./css/resource.css" />
+
+{@
+$required_field = '필수 입력 필드입니다.';
+}
+
+<div class="form requestPackage">
+    <h3>자료 등록</h3>
+    <p class="information">쉬운 설치에서 이용하기 위해서는 자료 등록이 필요합니다.<br>자료 등록을 위해 필요한 사항을 입력 해주시면 해당 프로그램이 자동으로 관리됩니다.</p>
+    <p class="reference">(<em><img src="./img/bu_must.gif" alt="{$required_field}" /></em>) 표시는 <b>필수 입력 사항</b>입니다.</p>
+
+	<div cond="$XE_VALIDATOR_MESSAGE" class="message {$XE_VALIDATOR_MESSAGE_TYPE}">
+		<p>{$XE_VALIDATOR_MESSAGE}</p>
+	</div>
+	
+    <form action="./" method="post" ruleset="insertPackage">
+    <input type="hidden" name="module" value="resourceauto" />
+    <input type="hidden" name="act" value="procResourceautoRegisterPackage" />
+    <input type="hidden" name="success_return_url" value="{getRequestUriByServerEnviroment()}" />
+    <input type="hidden" name="xe_validator_id" value="modules/resourceauto/tpl/config/1" />
+    <fieldset>
+            <table class="form">
+            <tr class="first_child">
+                <th scope="row"><em>카테고리&nbsp;<img src="./img/bu_must.gif" title="{$required_field}" /></em></th>
+                <td>
+                    <p>
+                        <select name="category_srl">
+                        {@ $_curDepth = 0; }
+                        <!--@foreach($categories as $key => $val)-->
+                            <!--@if($val->depth<$_curDepth)-->
+                            </optgroup>
+                            <!--@end-->
+                            <!--@if($val->depth<1)-->
+                            <!--@if($val->child_count>0)-->
+                            <optgroup label="{$val->title}">
+                            <!--@else-->
+                            <option value="{$val->category_srl}" <!--@if($category_srl == $val->category_srl)-->selected="selected"<!--@end-->>{$val->title}</option>
+                            <!--@end-->
+                            <!--@end-->
+                            <!--@if($val->depth>0)-->
+                                <option value="{$val->category_srl}" <!--@if($category_srl == $val->category_srl)-->selected="selected"<!--@end-->>{$val->title}</option>
+                            <!--@end-->
+                            {@ $_curDepth = $val->depth}
+                        <!--@end-->
+                        <!--@for($i=0;$i<$_curDepth;$i++)--></optgroup><!--@end-->
+                        </select>
+                    </p>
+                    <p class="description">자료의 종류를 선택해주세요</p>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row"><em>프로그램 이름&nbsp;<img src="./img/bu_must.gif" title="{$required_field}" /></em></th>
+                <td>
+                    <p><input type="text" name="title" class="text_field" /></p>
+                    <p class="description">자료의 제목을 입력해주세요.</p>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row"><em>Github Url&nbsp;<img src="./img/bu_must.gif" title="{$required_field}" /></em></th>
+                <td>
+                    <p><input type="text" name="repo_url" class="text_field" /></p>
+                    <p class="description">'https://github.com/유저명/저장소명' 과 같이 등록할 URL을 입력해주세요.</p>
+                </td>
+            </tr>
+            <tr class="last_child">
+                <th scope="row"><em>설치 경로&nbsp;<img src="./img/bu_must.gif" title="{$required_field}" /></em></th>
+                <td>
+                    <p><input type="text" name="install_location" class="text_field" /></p>
+                    <p class="description">./modules/모듈명 과 같이 해당 자료가 직접 설치될 위치를 입력해주세요.</p>
+                </td>
+            </tr>
+            </table>
+        </fieldset>
+
+        <div class="btnArea">
+            <input class="btn btn-inverse" type="submit" value="{$lang->cmd_registration}" />
+        </div>
+    </form>
+</div>
